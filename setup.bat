@@ -67,7 +67,7 @@ goto MENU
 
 :START_WEAVIATE
 echo Starting Weaviate + Transformers...
-cd Transformer_Inference_API
+cd Gemma_Inference_API
 docker compose up -d
 cd ..
 pause

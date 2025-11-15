@@ -9,8 +9,9 @@ class Settings(BaseSettings):
     ENC_ALGORITHM: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int
     ALLOWED_ORIGIN: str
-    MONGODB_URI:str
-    GOOGLE_API_KEY:str
+    MONGODB_URI: str
+    WEAVIATE_SERVER: str
+    GOOGLE_API_KEY: str
     MCP_SERVER: str
     model_config = SettingsConfigDict(env_file=BASE_DIR / ".env") #Read your .env file
 

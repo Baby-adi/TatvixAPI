@@ -83,7 +83,7 @@ goto MENU
 echo Starting MCP server...
 start "MCP Server" cmd /k "python -m McpServer.server"
 echo Starting application server...
-::start "Application Server" cmd /k "uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+start "Application Server" cmd /k "uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
 pause
 goto MENU
 

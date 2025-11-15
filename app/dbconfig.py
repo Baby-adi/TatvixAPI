@@ -3,6 +3,9 @@ from sqlmodel import create_engine,SQLModel,Session
 from mongoengine import connect,disconnect
 import weaviate
 from weaviate import WeaviateClient
+from pymongo import MongoClient
+from fastapi import Request
+
 
 class SQLiteConfig():
     def __init__(self):
@@ -17,6 +20,10 @@ class SQLiteConfig():
     def _create_db_and_tables(self):
         """ Method to create database and all default tables if not created. """
         SQLModel.metadata.create_all(self.engine)
+    
+    def get_session(self, requst:Request):
+        """ Method to get current user session for database """
+        session = Session(self.engine)
 
 class MongoDBConfig():
     def __init__(self):
@@ -25,6 +32,11 @@ class MongoDBConfig():
     def disconnect(self):
         """ Method to release MongoEngine connection object to database. """
         disconnect(alias="TatvixDB")
+
+class PyMongoConfig():
+    def __init__(self):
+        self.pymongo_client = MongoClient(settings.MONGODB_URI)
+
 
 class WeaviateConfig():
     def __init__(self):
@@ -52,4 +64,7 @@ def get_mongo_config():
 
 def get_weaviate_client():
     return WeaviateConfig()
+
+def get_pymongo_client():
+    return PyMongoConfig()
 

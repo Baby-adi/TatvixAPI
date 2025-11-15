@@ -3,12 +3,12 @@ from app.settings import settings
 
 class McpClient():
     def __init__(self):
-        self.mcp_client = self._get_mcp_client()
-        self.tools = self._get_tools()
+        self.mcp_client = None
+        self.tools = None
 
-    def _get_mcp_client(self):
-        """ Method to get mcp client object """
-        client = MultiServerMCPClient(
+    async def _init_tools(self):
+        """ Method to get mcp client object and pass tools co-routine instance. """
+        self.mcp_client = MultiServerMCPClient(
             {
                 #Retrieval client
                 "retrieval": {
@@ -17,12 +17,8 @@ class McpClient():
                 }
             }
         )
-        return client
-    
-    async def _get_tools(self):
-        tools = await self.mcp_client.get_tools()
-        return tools
+        
+        self.tools = await self.mcp_client.get_tools()
+        return self.tools
 
-
-mcp = McpClient()
 

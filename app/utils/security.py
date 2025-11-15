@@ -9,6 +9,7 @@ from typing import Annotated
 from jwt.exceptions import InvalidTokenError
 from app.settings import settings
 import jwt
+import uuid
 
 oauth2_schema = OAuth2PasswordBearer(tokenUrl="login")
 
@@ -67,5 +68,9 @@ class Security():
 
         except InvalidTokenError as e:
             raise e
+    @staticmethod
+    def create_chat_hash(userid) -> str:
+        """ Method to create unique user id combination for chat session. """
+        return f"{userid}-{uuid.uuid4()}"
 
 security = Security()

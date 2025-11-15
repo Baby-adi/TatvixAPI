@@ -8,9 +8,11 @@ from typing import Literal,Optional
 import certifi,os
 from langgraph.prebuilt import ToolNode,tools_condition
 from app.agent.utils.states import ChatState
-from app.agent.utils.mcp_client import mcp
+from app.agent.utils.mcp_client import McpClient
 from langgraph.graph.state import CompiledStateGraph
 from app.agent.utils.prompts import prompt_templates
+from app.settings import settings
+import asyncio
 
 # Force Python to use certifi's CA bundle so TLS/HTTPS validation works
 os.environ["SSL_CERT_FILE"] = certifi.where()
@@ -19,16 +21,20 @@ os.environ["REQUESTS_CA_BUNDLE"] = certifi.where()
 
 class LegalAgent():
     def __init__(self):
-        self.mcp_client = mcp.mcp_client
-        self.tools = mcp.tools
+        self.tools = asyncio.run(self._get_mcp_tools())
         self.model = self._initialize_model()
-        self._checkpointer:Optional[InMemorySaver] = None #Using in memory saver for testing, will switch to mongoDB for better performance.
+        self.checkpointer:Optional[InMemorySaver] = None #Using in memory saver for testing, will switch to mongoDB for better performance.
         self._graph:Optional[CompiledStateGraph] = None
+
+    async def _get_mcp_tools(self):
+        client = McpClient()
+        return await client._init_tools()
 
     def _initialize_model(self):
         """ Method to initialize chat model """
         model = ChatGoogleGenerativeAI(
             model="gemini-2.5-flash",
+            google_api_key=settings.GOOGLE_API_KEY,
             max_retries=2
         ).bind_tools(self.tools)
         return model
@@ -49,7 +55,7 @@ class LegalAgent():
         user_msg = [m for m in state.get("messages") if isinstance(m, HumanMessage)] #Count only the number of pormpts asked by the user.
         if len(user_msg) > 3: #Set to 3 for test purposes.
             return "summary_node"
-        return "trim_message_state"
+        return "trim_input_context"
 
     def _summary_node(self, state: ChatState) -> ChatState:
         """ Node to build summaries of accumilated messages in message state reducer to improve checkpointer performance/Model performance """
@@ -164,10 +170,10 @@ class LegalAgent():
                 builder.add_edge("tools","trim_tool_output")
                 builder.add_edge("trim_tool_output","chat_node")
 
-                if self._checkpointer is None:
-                    raise RuntimeError("checkpointer not initialized! Use app.state.legal_agent._checkpointer")
+                if self.checkpointer is None:
+                    raise RuntimeError("checkpointer not initialized! Use app.state.legal_agent.checkpointer")
 
-                self._graph = builder.compile(checkpointer=self._checkpointer)
+                self._graph = builder.compile(checkpointer=self.checkpointer)
 
             except Exception as e:
                 print(f"Exception -> {e}") #Log
@@ -175,7 +181,7 @@ class LegalAgent():
 
         return self._graph
 
-    def get_response(self, message:str, session_id:str):
+    async def get_response(self, message:str, session_id:str):
         """ Get response from the LLM for user question """
         if self._graph is None:
             self._graph = self._build_graph()
@@ -185,7 +191,7 @@ class LegalAgent():
         }
 
         try:
-            response = self._graph.ainvoke({"user_query": message},config)
+            response = await self._graph.ainvoke({"user_query": message},config)
             return response
 
         except Exception as e:
@@ -194,7 +200,7 @@ class LegalAgent():
     def clear_chat(self, session_id:str):
         """ Clear current session from lang graph checkpointer """
         try:
-            response = self._checkpointer.delete_thread(session_id)
+            response = self.checkpointer.delete_thread(session_id)
             return response
         except Exception as e:
             raise e

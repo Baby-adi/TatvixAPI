@@ -62,7 +62,9 @@ if "%choice%"=="1" goto START_WEAVIATE
 if "%choice%"=="2" goto START_SETUP
 if "%choice%"=="3" goto START_APP
 if "%choice%"=="4" goto STOP_WEAVIATE
-if "%choice%"=="5" goto EXIT
+if "%choice%"=="5" goto STOP_SETUP
+if "%choice%"=="6" goto STOP_APP
+if "%choice%"=="7" goto EXIT
 
 goto MENU
 
@@ -115,6 +117,25 @@ echo Stopping Weaviate + Transformers...
 cd Gemma_Inference_API
 docker compose down
 cd ..
+pause
+goto MENU
+
+:STOP_SETUP
+echo Stopping Setup Server...
+
+taskkill /FI "WINDOWTITLE eq Setup Server*" /T /F >nul 2>&1
+
+echo Setup server stopped.
+pause
+goto MENU
+
+:STOP_APP
+echo Stopping Application Server and MCP Server...
+
+taskkill /FI "WINDOWTITLE eq MCP Server*" /T /F >nul 2>&1
+taskkill /FI "WINDOWTITLE eq Application Server*" /T /F >nul 2>&1
+
+echo All application processes stopped.
 pause
 goto MENU
 

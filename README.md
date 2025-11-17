@@ -7,6 +7,107 @@ This project is currently in **local development** and runs entirely on your mac
 
 ---
 
+# 🧱 **Prerequisites (Windows Only)**
+
+Before installing or running the system, ensure the following dependencies are installed on your Windows machine.
+
+---
+
+## ✅ **1. Install Python & pip**
+
+Tatvix requires:
+
+* **Python 3.10+**
+* **pip package manager** (comes with Python)
+
+### ✔ Check Installation
+
+Open PowerShell or CMD and run:
+
+```bash
+python --version
+pip --version
+```
+
+If not installed, download Python from:
+
+👉 [https://www.python.org/downloads/windows/](https://www.python.org/downloads/windows/)
+
+During installation, **make sure to enable:**
+
+✔ *“Add Python to PATH”*
+✔ *“Install pip”*
+
+---
+
+## ✅ **2. Install MongoDB (Windows)**
+
+Tatvix uses MongoDB for storing original legal documents.
+
+Download MongoDB Community Server:
+
+👉 **[https://www.mongodb.com/try/download/community](https://www.mongodb.com/try/download/community)**
+
+### ✔ Choose the **`.msi` installer**
+
+(It handles everything needed for Windows)
+
+### ✔ After installation, add MongoDB to PATH:
+
+1. Open **System Properties → Environment Variables**
+2. Under **System variables → Path** → click **Edit**
+3. Add:
+
+```
+C:\Program Files\MongoDB\Server\7.0\bin
+```
+
+This enables commands like:
+
+```
+mongod
+mongo
+```
+
+(Optional but recommended) Install **MongoDB Compass** for GUI browsing.
+
+---
+
+## ✅ **3. Install Tesseract OCR (Windows)**
+
+Tatvix uses Tesseract for OCR when extracting text from scanned PDFs.
+
+Download the Windows installer from:
+
+👉 **[https://github.com/UB-Mannheim/tesseract/wiki](https://github.com/UB-Mannheim/tesseract/wiki)**
+
+Then download this file (latest stable at the time of writing):
+
+```
+tesseract-ocr-w64-setup-5.5.0.20241111.exe
+```
+
+Install it normally.
+
+### ✔ Add Tesseract to PATH:
+
+1. Navigate to:
+
+   ```
+   C:\Program Files\Tesseract-OCR
+   ```
+2. Copy the folder path
+3. Add it to **System Environment Variables → Path**
+
+Now verify:
+
+```bash
+tesseract --version
+```
+
+---
+
+
 # 📦 **Setup & Installation**
 
 ## 1. **Clone the Repository**

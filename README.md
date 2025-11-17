@@ -160,42 +160,7 @@ Weaviate and the embedding inference container require Docker to be running.
 
 ---
 
-## 2. **Install the Embedding Model (Gemma 300M)**
-
-Tatvix uses **Gemma 300M Embedding Model**, optimized for edge devices.
-
-Inside the folder:
-
-```
-TatvIX_API/Gemma_Inference_API/
-```
-
-Run this Python snippet to download the model:
-
-```python
-from huggingface_hub import snapshot_download
-
-snapshot_download(
-    repo_id="google/embeddinggemma-300M",
-    local_dir="./models/gemma-300m",
-    local_dir_use_symlinks=False
-)
-```
-
-Your final directory structure must look like:
-
-```
-TatvIX_API/
-└── Gemma_Inference_API/
-    └── models/
-        └── gemma-300m/   <-- model files here
-```
-
-This folder is mounted by the inference Docker container at runtime.
-
----
-
-## 3. **Run the Setup Script**
+## 2. **Run the Setup Script**
 
 After Docker is running and the model is installed:
 

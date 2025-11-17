@@ -15,6 +15,7 @@ def get_legal_agent(request: Request):
     agent.checkpointer = request.app.state.checkpointer
     return agent
 
+# For logs, print has been used, using a logging library is much better, and will be used as project moves in progress.
 
 @router.get("/chat",status_code=200)
 def find_chat(
@@ -23,6 +24,11 @@ def find_chat(
     session: SQLSessionDep,
     chat_id: None|str = None
 ):
+    """
+    End point to create or find chat.
+    /chat, chat_id =  None -> Creates new chat and returns the chat_id.
+    /chat/?chat_id=<chat_id> -> Retrieves the chat_id to get.
+    """
     if chat_id is None:
         try:
             new_chat_id = security.create_chat_hash(current_user.id)
@@ -80,6 +86,14 @@ async def talk_chat(
     chat_id: str,
     chat: ChatPayload
 ):
+    """
+    End point to talk to the legal agent.
+    /chat/chat_id=<chat_id>,
+    body: {
+        "user_query":"<query>"
+    }
+    returns agent response as content.
+    """
     try:
         # Retrieve chat id to check if it exists or not.
         is_chat = session.exec(select(Chat).where(Chat.id == chat_id)).first()
@@ -126,4 +140,31 @@ async def talk_chat(
         }
 
 
-
+@router.get("/chat-ids")
+def get_chat_ids(
+    request:Request,
+    current_user:Annotated[User,Depends(security.get_current_user)],
+    session:SQLSessionDep,
+):
+    """
+    End-point to get all chat_ids.
+    returns -> a list of chat_ids of the user making the request. (passed to get_current_user dependency with the help of request object)
+    """
+    try:
+        if not current_user:
+            raise HTTPException(status_code=403,detail={"code":"UNAUTHORIZED","message":"chat does not belong to the right user"})
+        
+        chats = session.exec(select(Chat).where(Chat.owner_id == current_user.id)).all()
+        print(chats) #LOG
+        if not chats:
+            raise HTTPException(status_code=404,detail={"code":"NOT_FOUND","message":"User has no associated chat ids"})
+        
+    except Exception as e:
+        print(e) #LOG
+        raise HTTPException(500, {"code": "INTERNAL_SERVER_ERROR", "message": "There was a problem processing the model"})
+    
+    return {
+        "code":"CHAT_IDS_RETRIEVED",
+        "message":"chat ids have been successfully retrieved",
+        "chat_ids":[x.id for x in chats]
+    }

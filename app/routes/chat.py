@@ -115,7 +115,7 @@ async def talk_chat(
 
         print(content[-1].text) #LOG
 
-        if response:
+        if content:
             human_message = Message(chat_id=chat_id,role="human",content=user_query)
             ai_message = Message(chat_id=chat_id,role="ai",content=content[-1].text)
             try:
@@ -154,7 +154,7 @@ def get_chat_ids(
         if not current_user:
             raise HTTPException(status_code=403,detail={"code":"UNAUTHORIZED","message":"chat does not belong to the right user"})
         
-        chats = session.exec(select(Chat).where(Chat.owner_id == current_user.id)).all()
+        chats = session.exec(select(Chat).where(Chat.owner_id == current_user.id).order_by(Chat.created_at.desc())).all()
         print(chats) #LOG
         if not chats:
             raise HTTPException(status_code=404,detail={"code":"NOT_FOUND","message":"User has no associated chat ids"})

@@ -68,6 +68,7 @@ class Security():
 
         except InvalidTokenError as e:
             raise e
+        
     @staticmethod
     def create_chat_hash(userid) -> str:
         """ Method to create unique user id combination for chat session. """

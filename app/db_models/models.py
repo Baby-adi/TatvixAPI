@@ -27,7 +27,7 @@ class Chat(SQLModel, table=True):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     user: User = Relationship(back_populates="chats") #When i call user.chats, i will get the full chat instance for that particular user.
-    messages: list["Message"] = Relationship(back_populates="chat")
+    messages: list["Message"] = Relationship(back_populates="chat", cascade_delete=True)
 
 class Message(SQLModel, table=True):
     id: int|None = Field(primary_key=True,default=None)

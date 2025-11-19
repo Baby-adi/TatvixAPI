@@ -138,7 +138,44 @@ async def talk_chat(
             "content":content[-1].text,
             "chat_id":chat_id
         }
+    
 
+@router.delete("/chat",status_code=200)
+def delete_chat(
+    request: Request,
+    current_user: Annotated[User,Depends(security.get_current_user)],
+    session: SQLSessionDep,
+    legal_agent: Annotated[LegalAgent,Depends(get_legal_agent)],
+    chat_id:str
+):
+    """
+    Method to delete specified chat from user chat history and lang-graph mongodb checkpointer.
+    args -> chat_id:str -> query params
+    """
+    
+    is_chat = session.exec(select(Chat.id).where(Chat.id == chat_id)).first()
+    if not is_chat:
+        raise HTTPException(status_code=404,detail={"code":"NOT_FOUND","message":"chat could not be found"})
+    try:
+        response = legal_agent.clear_chat(session_id=chat_id) #Clear chat from mongoDB checkpointer
+        print(response) #LOG
+        try:
+            results = session.exec(select(Chat).where(Chat.id == chat_id)).one()
+            session.delete(results)
+            session.commit()
+    
+        except Exception as e:
+            session.rollback()
+            print(e) #LOG
+            raise HTTPException(500, {"code": "DB_ERROR", "message": "Failed to delete messages"})
+
+    except Exception as e:
+        raise HTTPException(status_code=500,detail={"code":"INTERNAL_SERVER_ERROR","message":"Could not delete record"})
+    
+    return {
+            "code":"CHAT_DELETE_SUCCESS",
+            "message":"Chat has been successfully been deleted",
+        }
 
 @router.get("/chat-ids")
 def get_chat_ids(

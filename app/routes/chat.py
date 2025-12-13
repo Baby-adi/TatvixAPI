@@ -110,6 +110,7 @@ async def talk_chat(
         
         response = await legal_agent.get_response(message=user_query,session_id=chat_id)
         content = response.get("messages",[])
+        
         if not content:
             raise HTTPException(500, detail={"code": "INTERNAL_SERVER_ERROR", "message": "No messages in model response, try again"})
 

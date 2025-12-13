@@ -1,7 +1,7 @@
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.graph import StateGraph,START,END,MessagesState
 from langchain_core.messages import HumanMessage,SystemMessage,AIMessage,ToolMessage
-from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.checkpoint.mongodb import MongoDBSaver
 from langchain_core.messages.utils import trim_messages,count_tokens_approximately
 from langchain.messages import RemoveMessage
 from typing import Literal,Optional
@@ -23,7 +23,7 @@ class LegalAgent():
     def __init__(self):
         self.tools = asyncio.run(self._get_mcp_tools())
         self.model = self._initialize_model()
-        self.checkpointer:Optional[InMemorySaver] = None #Using in memory saver for testing, will switch to mongoDB for better performance.
+        self.checkpointer:Optional[MongoDBSaver] = None
         self._graph:Optional[CompiledStateGraph] = None
 
     async def _get_mcp_tools(self):
@@ -89,11 +89,11 @@ class LegalAgent():
         try:
             trimmed_tool_output = trim_messages(
                 to_trim,
-                strategy="last",
-                token_counter= count_tokens_approximately, #Passes an estimated token count of the base message input.
-                max_tokens=5000,
-                start_on="ai",
-                end_on=("tool")
+                strategy = "last",
+                token_counter = count_tokens_approximately, #Passes an estimated token count of the base message input.
+                max_tokens = 7000,
+                start_on = "ai",
+                end_on = ("tool")
             )
 
             trimmed = [] #Make sure sequence of trimmedoutput is in the correct sequence our LLM expects the input in. (Human/System Message followed by AI/Tool Message)
@@ -192,6 +192,13 @@ class LegalAgent():
 
         try:
             response = await self._graph.ainvoke({"user_query": message},config)
+            print(response["messages"]) #LOG
+            """tool_messages = [
+                m for m in response["messages"]
+                if isinstance(m, ToolMessage)
+            ] #Extract all the tool messages from the messages list from graph state.
+            print(tool_messages)
+            """
             return response
 
         except Exception as e:

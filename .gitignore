@@ -5,3 +5,4 @@ TatvixDB.db
 /Gemma_Inference_API/models
 /Gemma_Inference_API/weaviate_data
 /tests
+*.env

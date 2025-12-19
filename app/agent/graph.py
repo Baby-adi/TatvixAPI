@@ -1,4 +1,5 @@
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_ollama import ChatOllama
 from langgraph.graph import StateGraph,START,END,MessagesState
 from langchain_core.messages import HumanMessage,SystemMessage,AIMessage,ToolMessage
 from langgraph.checkpoint.mongodb import MongoDBSaver
@@ -32,11 +33,14 @@ class LegalAgent():
 
     def _initialize_model(self):
         """ Method to initialize chat model """
-        model = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
-            google_api_key=settings.GOOGLE_API_KEY,
-            max_retries=2
+        #using Qwen 2.5 (3B) - edge model capable 
+        model = ChatOllama(
+            model="qwen2.5:3b",    
+            temperature=0.1,       
+            num_ctx=8192,  # 8k context
+            keep_alive="5m" # model in mem for 5mins after last req, then unload       
         ).bind_tools(self.tools)
+        
         return model
 
     def _append_query(self, state: ChatState) -> ChatState:
@@ -192,6 +196,14 @@ class LegalAgent():
 
         try:
             response = await self._graph.ainvoke({"user_query": message},config)
+            
+            # This ensures every user sees the warning, regardless of the model's output.
+            if response["messages"] and isinstance(response["messages"][-1], AIMessage):
+                last_msg = response["messages"][-1]
+                disclaimer = "\n\n---\n*Disclaimer: This is an AI assistant. Information provided is for educational purposes only and does not constitute professional legal advice.*"
+                if disclaimer not in last_msg.content:
+                    last_msg.content += disclaimer
+
             print(response["messages"]) #LOG
             """tool_messages = [
                 m for m in response["messages"]

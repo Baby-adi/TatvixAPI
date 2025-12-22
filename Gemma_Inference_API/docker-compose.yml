@@ -1,0 +1,62 @@
+services:
+  t2v-transformers:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: custom-transformer-api:latest
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./models/gemma-300m:/app/models/model:ro  # Mount model as read-only
+    environment:
+      TRANSFORMERS_MODEL_NAME_OR_PATH: '/app/models/model'
+      ENABLE_CUDA: '1'
+    networks:
+      - weaviate_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/v1/.well-known/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  weaviate:
+    image: cr.weaviate.io/semitechnologies/weaviate:latest
+    depends_on:
+      t2v-transformers:
+        condition: service_healthy
+    command:
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8080"
+      - --scheme
+      - http
+    ports:
+      - "8080:8080"
+      - "50051:50051"
+    volumes:
+      - ./weaviate_data:/var/lib/weaviate
+    restart: on-failure
+    environment:
+      QUERY_DEFAULTS_LIMIT: '25'
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      ENABLE_API_BASED_MODULES: 'true'
+      BACKUP_FILESYSTEM_PATH: '/var/lib/weaviate/backups'
+      CLUSTER_HOSTNAME: 'node1'
+      DEFAULT_VECTORIZER_MODULE: text2vec-transformers
+      ENABLE_MODULES: text2vec-transformers
+      TRANSFORMERS_INFERENCE_API: 'http://t2v-transformers:8081'
+      TEXT2VEC_TRANSFORMERS_MODEL_PATH: '/app/models/model'
+      TEXT2VEC_TRANSFORMERS_MODEL_NAME: 'EmbeddingGemma'
+    networks:
+      - weaviate_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/v1/.well-known/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  weaviate_network:
+    driver: bridge

@@ -1,0 +1,8 @@
+.venv
+.env
+TatvixDB.db
+/**/__pycache__
+/Gemma_Inference_API/models
+/Gemma_Inference_API/weaviate_data
+/tests
+*.env

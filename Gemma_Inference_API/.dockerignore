@@ -1,0 +1,14 @@
+# Virtual environment
+venv/
+.env
+
+# Model and result directories
+checkpoints/
+embedding_setup/
+
+# Dataset and other large files
+legal_data.json
+query_passage_pairs_dataset.jsonl
+
+# Optional: ignore Jupyter notebooks
+*.ipynb

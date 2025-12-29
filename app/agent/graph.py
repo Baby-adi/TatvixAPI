@@ -27,7 +27,7 @@ class LegalAgent():
         self.model = None
         self.checkpointer:Optional[MongoDBSaver] = None
         self._graph:Optional[CompiledStateGraph] = None
-        
+    
     @classmethod
     async def init_legal_agent(cls):
         """ Method to get mcp tools while creating class instance consistently. """
@@ -47,7 +47,7 @@ class LegalAgent():
     def _initialize_model(self):
         """ Method to initialize chat model """
         model = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
+            model="gemini-2.5-flash-lite",
             google_api_key=settings.GOOGLE_API_KEY,
             max_retries=2
         ).bind_tools(self.tools)
@@ -64,12 +64,36 @@ class LegalAgent():
         """ Node to wrap retrieved tool list with a prebuilt ToolNode class for an appropriate Tool function in the compilable graph """
         return ToolNode(tools=self.tools)
 
-    def _should_summarize(self, state:ChatState) -> Literal["summary_node","chat_node"]:
+    def _should_summarize(self, state: ChatState) -> Literal["summary_node","chat_node"]:
         """ conditional edge to make sure if more than n messages have accumilated, summarize chat history """
         user_msg = [m for m in state.get("messages") if isinstance(m, HumanMessage)] #Count only the number of pormpts asked by the user.
         if len(user_msg) > 3: #Set to 3 for test purposes.
             return "summary_node"
         return "trim_input_context"
+    
+    def _should_generate_header(self, state: ChatState) -> Literal["generate_header","chat_node"]:
+        """ conditional edge to generate section header for the UI """
+        header = state.get("heading","")
+        if header:
+            return "chat_node"
+        return "generate_header"
+    
+    def _generate_header(self, state: ChatState) -> ChatState:
+        """ Node to generate thread header for the on-going conversation """
+        user_query = state.get("user_query")
+        template = prompt_templates.header_template
+        try:
+            if user_query:
+                query_template = template.invoke({"user_query" : user_query})
+                response = self.model.invoke(query_template)
+                print(response.text) #LOG
+            else:
+                raise Exception("No user query passed!!!")
+        
+        except Exception as e:
+            raise e
+        
+        return {"heading" : response.text}
 
     def _summary_node(self, state: ChatState) -> ChatState:
         """ Node to build summaries of accumilated messages in message state reducer to improve checkpointer performance/Model performance """
@@ -140,6 +164,13 @@ class LegalAgent():
 
         return {"messages": trimmed_messages}
 
+    #def _is_document(self, state: ChatState) -> ChatState:
+    #    """ Conditional function to see if document was passed or not """
+    #    document_data = state.get(document_data,"")
+    #    if document_data:
+    #        return "inject_document_template"
+    #    return "chat_node"
+
     def _chat_node(self, state: ChatState) -> ChatState:
         """ Node to initiate conversation with the chat model """
         default_messages = state.get("messages")
@@ -158,7 +189,7 @@ class LegalAgent():
         except Exception as e:
             raise e
 
-        return {"messages": [response]}
+        return {"messages" : [response]}
 
     def _build_graph(self):
         """ Create langgraph agent workflow and complie it """
@@ -167,6 +198,7 @@ class LegalAgent():
                 builder = StateGraph(ChatState)
                 builder.add_node("append_query",self._append_query)
                 builder.add_node("tools",self._tool_node)
+                builder.add_node("generate_header",self._generate_header)
                 builder.add_node("trim_input_context",self._trim_input_context)
                 builder.add_node("trim_tool_output",self._trim_tool_output)
                 builder.add_node("summary_node",self._summary_node)
@@ -176,9 +208,15 @@ class LegalAgent():
                 builder.add_conditional_edges(
                     "append_query",
                     self._should_summarize,
-                    {"trim_input_context":"trim_input_context","summary_node":"summary_node"}
+                    {"trim_input_context" : "trim_input_context", "summary_node" : "summary_node"}
                 )
                 builder.add_edge("summary_node","trim_input_context")
+                builder.add_conditional_edges(
+                    "trim_input_context",
+                    self._should_generate_header,
+                    {"chat_node" : "chat_node", "generate_header" : "generate_header"}
+                )
+                builder.add_edge("generate_header","chat_node")
                 builder.add_edge("trim_input_context","chat_node")
                 builder.add_conditional_edges("chat_node",tools_condition)
                 builder.add_edge("tools","trim_tool_output")
@@ -210,16 +248,28 @@ class LegalAgent():
         try:
             response = await self._graph.ainvoke({"user_query": message},config)
             print(response["messages"]) #LOG
+            data = response.get("messages","")
+            header = response.get("heading","")
+            content = data[-1].text
+            
+            response_data = {
+                "content" : content
+            }
+            
+            if "heading" in response:
+                response_data["header"] = header
+
             """tool_messages = [
                 m for m in response["messages"]
                 if isinstance(m, ToolMessage)
             ] #Extract all the tool messages from the messages list from graph state.
             print(tool_messages)
             """
-            return response
-
         except Exception as e:
             raise e
+        
+        
+        return response_data
 
     def clear_chat(self, session_id:str):
         """ Clear current session from lang graph checkpointer """

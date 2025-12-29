@@ -5,9 +5,9 @@ from app.db_models.models import PDFImage
 
 
 def get_sql_session(request: Request):
-        """ Method to initialize database session object """
-        with Session(request.app.state.sqlite_config.engine) as session:
-            yield session
+    """ Method to initialize database session object """
+    with Session(request.app.state.sqlite_config.engine) as session:
+        yield session
 
 def reconstruct_text_to_image(request: Request):
     pass

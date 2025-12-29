@@ -1,8 +1,11 @@
-
+from langchain_core.prompts import ChatPromptTemplate
+from langchain.messages import SystemMessage
 
 class PromptTemplates():
     def __init__(self):
         self.system_template = self._get_system_template()
+        self.header_template = self._get_header_template()
+        #self.document_upload = self._document_upload()
 
     def _get_system_template(self):
         system_template = """
@@ -80,6 +83,58 @@ class PromptTemplates():
 
         """
         return system_template
+    
+    def _get_header_template(self):
+        prompt = "Generate a 5 word phrase or summary for the following question the user asked {user_query}"
+        template = ChatPromptTemplate([
+            ("human",prompt)
+        ])
+        return template
+    
+    # def _document_upload(self):
+    #     """ Document upload prompt template """
+    #     template = """
+    #         You are given a document uploaded by the user.
+
+    #         Your task is to answer the user’s questions by referring primarily to the provided document text.
+    #         You should:
+    #         - Base your answers on the document whenever relevant.
+    #         - Clearly indicate which part or section of the document your answer comes from.
+    #         - Explain the meaning in clear, simple language.
+    #         - If the user’s question goes beyond the scope of the document, you may use external knowledge or tools, but only after stating that the information is not explicitly present in the document.
+
+    #         Do NOT fabricate sections, clauses, or citations.
+    #         If the document does not contain the requested information, say so explicitly.
+
+    #         --------------------
+    #         ONE-SHOT EXAMPLE
+    #         --------------------
+
+    #         Document Text:
+    #         Section 300 of the Indian Penal Code defines murder as an act committed with the intention of causing death, or with the intention of causing such bodily injury as the offender knows is likely to cause death. The section further explains circumstances under which culpable homicide amounts to murder, including cases where the act is done with the knowledge that it is so imminently dangerous that it must, in all probability, cause death.
+
+    #         User Question:
+    #         What does Section 300 say about when culpable homicide becomes murder?
+
+    #         AI Answer:
+    #         According to Section 300 of the Indian Penal Code, culpable homicide becomes murder when the act is committed with the intention to cause death, or with the intention to cause bodily injury that the offender knows is likely to result in death. The document also explains that even without a direct intention to kill, an act can amount to murder if it is so imminently dangerous that it will probably cause death. This explanation is drawn directly from the definition and conditions described in Section 300 of the document.
+
+    #         --------------------
+    #         END OF EXAMPLE
+    #         --------------------
+
+    #         User Document:
+    #         {doc_text}
+
+    #     """
+        
+    #     prompt_template = ChatPromptTemplate.from_messages(
+    #         [
+    #             ("system", template)
+    #         ]
+    #     )
+
+    #     return prompt_template
 
 
 prompt_templates = PromptTemplates()

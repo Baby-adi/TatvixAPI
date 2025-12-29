@@ -62,6 +62,7 @@ def find_chat(
 
             #Returns a list of instances of messages of human and ai ordered by time created
             messages = session.exec(select(Message).where(Message.chat_id == chat_id).order_by(Message.created_at)).all()
+            header = is_chat.header
         
         except Exception as e:
             print(e)
@@ -71,7 +72,8 @@ def find_chat(
                 "code":"CHAT_RETRIEVED",
                 "message":"chat history found successfully",
                 "messages":messages,
-                "chat_id": chat_id
+                "chat_id": chat_id,
+                "header": header
             }
 
 
@@ -107,16 +109,29 @@ async def talk_chat(
             raise HTTPException(status_code=500,detail={"code":"INTERNAL_SERVER_ERROR","message":"user query is not passed"})
         
         response = await legal_agent.get_response(message=user_query,session_id=chat_id)
-        content = response.get("messages",[])
+        content = response.get("content",[])
+        if "header" in response.keys():
+            header = response.get("header","")
+            try:
+                update = session.exec(select(Chat).where(Chat.id == chat_id)).first()
+                update.header = header
+                session.add(update)
+                session.commit()
+            
+            except Exception as e:
+                session.rollback()
+                print(e) #LOG
+                raise HTTPException(500, {"code": "DB_ERROR", "message": "Failed to save messages"})
+            
         
         if not content:
             raise HTTPException(500, detail={"code": "INTERNAL_SERVER_ERROR", "message": "No messages in model response, try again"})
 
-        print(content[-1].text) #LOG
+        print(content) #LOG
 
         if content:
             human_message = Message(chat_id=chat_id,role="human",content=user_query)
-            ai_message = Message(chat_id=chat_id,role="ai",content=content[-1].text)
+            ai_message = Message(chat_id=chat_id,role="ai",content=content)
             try:
                 session.add(human_message)
                 session.add(ai_message)
@@ -125,8 +140,7 @@ async def talk_chat(
                 session.rollback()
                 print(e) #LOG
                 raise HTTPException(500, {"code": "DB_ERROR", "message": "Failed to save messages"})
-        
-    
+
     except Exception as e:
         print(e) #LOG
         raise HTTPException(status_code=500,detail={"code":"INTERNAL_SERVER_ERROR","message":"There was a problem processing the model"})
@@ -134,10 +148,16 @@ async def talk_chat(
     return {
             "code":"MODEL_RESPONSE_SUCCESS",
             "message":"Model has successfully returned a response",
-            "content":content[-1].text,
+            "content":content,
             "chat_id":chat_id
         }
-    
+
+"""@router.post("/chat/{chat_id}",status_code=200)
+def document(
+    request: Request,
+    current_user: Annotated[User,Depends(security.get_current_user)],
+    session: SQLSessionDep,
+)"""
 
 @router.delete("/chat",status_code=200)
 def delete_chat(

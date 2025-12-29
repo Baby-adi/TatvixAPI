@@ -62,7 +62,6 @@ def find_chat(
 
             #Returns a list of instances of messages of human and ai ordered by time created
             messages = session.exec(select(Message).where(Message.chat_id == chat_id).order_by(Message.created_at)).all()
-            header = is_chat.header
         
         except Exception as e:
             print(e)
@@ -72,8 +71,7 @@ def find_chat(
                 "code":"CHAT_RETRIEVED",
                 "message":"chat history found successfully",
                 "messages":messages,
-                "chat_id": chat_id,
-                "header": header
+                "chat_id": chat_id
             }
 
 
@@ -123,7 +121,6 @@ async def talk_chat(
                 print(e) #LOG
                 raise HTTPException(500, {"code": "DB_ERROR", "message": "Failed to save messages"})
             
-        
         if not content:
             raise HTTPException(500, detail={"code": "INTERNAL_SERVER_ERROR", "message": "No messages in model response, try again"})
 
@@ -211,6 +208,7 @@ def get_chat_ids(
             raise HTTPException(status_code=403,detail={"code":"UNAUTHORIZED","message":"chat does not belong to the right user"})
         
         chats = session.exec(select(Chat).where(Chat.owner_id == current_user.id).order_by(Chat.created_at.desc())).all()
+        
         print(chats) #LOG
         if not chats:
             raise HTTPException(status_code=404,detail={"code":"NOT_FOUND","message":"User has no associated chat ids"})
@@ -222,5 +220,5 @@ def get_chat_ids(
     return {
         "code":"CHAT_IDS_RETRIEVED",
         "message":"chat ids have been successfully retrieved",
-        "chat_ids":[x.id for x in chats]
+        "chat_headers":[x.header for x in chats]
     }

@@ -220,6 +220,6 @@ def get_chat_ids(
     return {
         "code":"CHAT_IDS_RETRIEVED",
         "message":"chat ids have been successfully retrieved",
-        "chat_ids": [x.ids for x in chats],
+        "chat_ids": [x.id for x in chats],
         "chat_headers":[x.header for x in chats]
     }
